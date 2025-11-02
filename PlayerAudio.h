@@ -8,21 +8,19 @@ public:
     PlayerAudio();
     ~PlayerAudio() override;
 
-    // AudioSource methods
-    void prepareToPlay(int samplesPerBlockExpected, double sampleRate) override;
-    void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
+    void prepareToPlay(int, double) override;
+    void getNextAudioBlock(const juce::AudioSourceChannelInfo&) override;
     void releaseResources() override;
 
-    // Transport control methods
-    void loadFile(const juce::File& audioFile);
+    void loadFile(const juce::File&);
     void start();
     void stop();
+    void setPosition(double);
+    void setGain(float);
 
-    // Loop Features
-    void setLooping(bool shouldLoop);
+    void setLooping(bool);
     bool isLooping() const { return looping; }
 
-    // A-B Looping methods
     void setLoopPointA();
     void setLoopPointB();
     void toggleABLooping();
@@ -33,9 +31,6 @@ public:
     double getLoopEnd() const { return loopEnd; }
     bool hasLoopPoints() const { return hasLoopStart && hasLoopEnd; }
 
-    void setPosition(double position);
-    void setGain(float gain);
-
     bool isPlaying() const { return transportSource.isPlaying(); }
     double getCurrentPosition() const { return transportSource.getCurrentPosition(); }
     double getLengthInSeconds() const { return transportSource.getLengthInSeconds(); }
@@ -43,21 +38,21 @@ public:
     void Muted();
     bool isMuted() const;
 
+    void setPlaybackSpeed(double speed);
+    double getPlaybackSpeed() const { return playbackSpeed; }
+
 private:
     juce::AudioFormatManager formatManager;
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
     juce::AudioTransportSource transportSource;
-    bool looping = false;
-    bool abLooping = false;
-    double loopStart = 0.0;
-    double loopEnd = 0.0;
-    bool hasLoopStart = false;
-    bool hasLoopEnd = false;
+    juce::ResamplingAudioSource resampler{ &transportSource, false, 2 };
 
-
+    bool looping = false, abLooping = false;
+    double loopStart = 0, loopEnd = 0;
+    bool hasLoopStart = false, hasLoopEnd = false;
     bool muted = false;
     float previousGain = 1.0f;
+    double playbackSpeed = 1.0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerAudio)
-
 };
