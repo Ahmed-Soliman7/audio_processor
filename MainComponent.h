@@ -10,19 +10,16 @@ public:
     MainComponent();
     ~MainComponent() override;
 
-    // AudioAppComponent methods
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate) override;
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
     void releaseResources() override;
 
-    // Component methods
     void paint(juce::Graphics& g) override;
     void resized() override;
 
 private:
     PlayerAudio playerAudio;
     PlayerAudio playerAudio2;
-
     PlayerGUI playerGUI;
     PlayerGUI playerGUI2;
 
