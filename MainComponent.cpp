@@ -1,44 +1,28 @@
-#include "MainComponent.h"
 
-MainComponent::MainComponent()
-    : playerGUI(playerAudio), playerGUI2(playerAudio2)
+#pragma once
+
+#include <JuceHeader.h>
+#include "PlayerGUI.h"
+#include "PlayerAudio.h"
+
+class MainComponent : public juce::AudioAppComponent
 {
-    addAndMakeVisible(playerGUI);
-    addAndMakeVisible(playerGUI2);
-    setSize(1200, 500);
-    setAudioChannels(0, 2);
-}
+public:
+    MainComponent();
+    ~MainComponent() override;
 
-MainComponent::~MainComponent() { shutdownAudio(); }
+    void prepareToPlay(int samplesPerBlockExpected, double sampleRate) override;
+    void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
+    void releaseResources() override;
 
-void MainComponent::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
-{
-    playerAudio.prepareToPlay(samplesPerBlockExpected, sampleRate);
-    playerAudio2.prepareToPlay(samplesPerBlockExpected, sampleRate);
-}
+    void paint(juce::Graphics& g) override;
+    void resized() override;
 
-void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
-{
-    bufferToFill.clearActiveBufferRegion();
-    juce::AudioSourceChannelInfo info1(bufferToFill);
-    playerAudio.getNextAudioBlock(info1);
-    juce::AudioSourceChannelInfo info2(bufferToFill);
-    playerAudio2.getNextAudioBlock(info2);
-}
+private:
+    PlayerAudio playerAudio;
+    PlayerAudio playerAudio2;
+    PlayerGUI playerGUI;
+    PlayerGUI playerGUI2;
 
-void MainComponent::releaseResources()
-{
-    playerAudio.releaseResources();
-    playerAudio2.releaseResources();
-}
-
-void MainComponent::paint(juce::Graphics& g) { g.fillAll(juce::Colours::darkgrey); }
-
-void MainComponent::resized()
-{
-    auto area = getLocalBounds().reduced(10);
-    auto leftArea = area.removeFromLeft(area.getWidth() / 2).reduced(5);
-    auto rightArea = area.reduced(5);
-    playerGUI.setBounds(leftArea);
-    playerGUI2.setBounds(rightArea);
-}
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
+};
