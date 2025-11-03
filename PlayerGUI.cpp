@@ -73,6 +73,10 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioPlayer)
     updateLoopPointsDisplay();
     updateSpeedDisplay();
     startTimer(30);
+
+    metadataLabel.setText("No file loaded", juce::dontSendNotification);
+    metadataLabel.setJustificationType(juce::Justification::centredLeft);
+    addAndMakeVisible(metadataLabel);
 }
 
 void PlayerGUI::paint(juce::Graphics& g)
@@ -133,6 +137,9 @@ void PlayerGUI::resized()
 
     auto soundArea = area.removeFromTop(40);
     muteButton.setBounds(soundArea.removeFromLeft(80));
+
+    auto metadataArea = area.removeFromTop(30);
+    metadataLabel.setBounds(metadataArea);
 }
 
 void PlayerGUI::buttonClicked(juce::Button* button)
@@ -230,6 +237,7 @@ void PlayerGUI::loadAudioFile()
                 updateTimeDisplays();
                 updateLoopPointsDisplay();
                 updateABLoopButton();
+                updateMetadataDisplay();
             }
         });
 }
@@ -249,4 +257,22 @@ juce::String PlayerGUI::formatTime(double seconds)
     int minutes = totalSeconds / 60;
     int secs = totalSeconds % 60;
     return juce::String::formatted("%d:%02d", minutes, secs);
+}
+
+void PlayerGUI::updateMetadataDisplay()
+{
+    juce::String metadataText;
+
+    if (playerAudio.getLengthInSeconds() > 0)
+    {
+        metadataText = "Title: " + playerAudio.getTitle() +
+            " | Artist: " + playerAudio.getArtist() +
+            " | Duration: " + formatTime(playerAudio.getDuration());
+    }
+    else
+    {
+        metadataText = "No file loaded";
+    }
+
+    metadataLabel.setText(metadataText, juce::dontSendNotification);
 }
