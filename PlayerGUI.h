@@ -58,5 +58,8 @@ private:
     void updateSpeedDisplay();
     juce::String formatTime(double seconds);
 
+    juce::Label metadataLabel;
+    void updateMetadataDisplay();
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
 };
