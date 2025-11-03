@@ -60,6 +60,7 @@ void PlayerAudio::loadFile(const juce::File& audioFile)
             readerSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
             transportSource.setSource(readerSource.get(), 0, nullptr, reader->sampleRate);
             resampler.setResamplingRatio(playbackSpeed);
+            currentFile = audioFile;
 
             if (readerSource != nullptr)
                 readerSource->setLooping(looping);
@@ -136,4 +137,14 @@ void PlayerAudio::setPlaybackSpeed(double speed)
 {
     playbackSpeed = juce::jlimit(0.25, 2.0, speed);
     resampler.setResamplingRatio(playbackSpeed);
+}
+
+juce::String PlayerAudio::getTitle() const
+{
+    return currentFile.getFileNameWithoutExtension();
+}
+
+juce::String PlayerAudio::getArtist() const
+{
+    return "Unknown Artist";
 }
