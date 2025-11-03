@@ -41,11 +41,16 @@ public:
     void setPlaybackSpeed(double speed);
     double getPlaybackSpeed() const { return playbackSpeed; }
 
+    juce::String getTitle() const;
+    juce::String getArtist() const;
+    double getDuration() const { return transportSource.getLengthInSeconds(); }
+
 private:
     juce::AudioFormatManager formatManager;
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
     juce::AudioTransportSource transportSource;
     juce::ResamplingAudioSource resampler{ &transportSource, false, 2 };
+    juce::File currentFile;
 
     bool looping = false, abLooping = false;
     double loopStart = 0, loopEnd = 0;
