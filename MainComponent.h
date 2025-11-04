@@ -23,5 +23,10 @@ private:
     PlayerGUI playerGUI;
     PlayerGUI playerGUI2;
 
+    juce::Slider masterVolumeSlider;
+    juce::Label masterVolumeLabel;
+    juce::Slider balanceSlider;
+    juce::Label balanceLabel;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

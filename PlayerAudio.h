@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <JuceHeader.h>
 
@@ -35,8 +35,9 @@ public:
     double getCurrentPosition() const { return transportSource.getCurrentPosition(); }
     double getLengthInSeconds() const { return transportSource.getLengthInSeconds(); }
 
-    void Muted();
-    bool isMuted() const;
+    void setMute(bool shouldMute);
+    void toggleMute();
+    bool isMuted() const { return muted; }
 
     void setPlaybackSpeed(double speed);
     double getPlaybackSpeed() const { return playbackSpeed; }
@@ -44,6 +45,9 @@ public:
     juce::String getTitle() const;
     juce::String getArtist() const;
     double getDuration() const { return transportSource.getLengthInSeconds(); }
+
+    int getNumChannels() const;
+    double getSampleRate() const;
 
 private:
     juce::AudioFormatManager formatManager;
@@ -56,7 +60,7 @@ private:
     double loopStart = 0, loopEnd = 0;
     bool hasLoopStart = false, hasLoopEnd = false;
     bool muted = false;
-    float previousGain = 1.0f;
+    float currentGain = 0.5f;
     double playbackSpeed = 1.0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerAudio)

@@ -1,10 +1,12 @@
-#include "PlayerAudio.h"
+﻿#include "PlayerAudio.h"
 
 PlayerAudio::PlayerAudio()
 {
     formatManager.registerBasicFormats();
     transportSource.setSource(nullptr);
     resampler.setResamplingRatio(playbackSpeed);
+    currentGain = 0.5f;
+    transportSource.setGain(currentGain);
 }
 
 PlayerAudio::~PlayerAudio()
@@ -20,7 +22,7 @@ void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 
 void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    if (transportSource.isPlaying())
+    if (readerSource != nullptr && transportSource.isPlaying())
     {
         resampler.getNextAudioBlock(bufferToFill);
 
@@ -52,6 +54,7 @@ void PlayerAudio::loadFile(const juce::File& audioFile)
     transportSource.setSource(nullptr);
     readerSource.reset();
     clearLoopPoints();
+    muted = false;
 
     if (audioFile.existsAsFile())
     {
@@ -74,7 +77,13 @@ void PlayerAudio::stop() { transportSource.stop(); transportSource.setPosition(0
 
 void PlayerAudio::setPosition(double position) { transportSource.setPosition(position); }
 
-void PlayerAudio::setGain(float gain) { transportSource.setGain(gain); }
+void PlayerAudio::setGain(float gain)
+{
+    currentGain = gain;
+    if (!muted) {
+        transportSource.setGain(gain);
+    }
+}
 
 void PlayerAudio::setLooping(bool shouldLoop)
 {
@@ -107,21 +116,23 @@ void PlayerAudio::toggleABLooping()
         abLooping = false;
 }
 
-bool PlayerAudio::isMuted() const { return muted; }
-
-void PlayerAudio::Muted()
+void PlayerAudio::setMute(bool shouldMute)
 {
-    if (!muted)
-    {
-        previousGain = transportSource.getGain();
-        transportSource.setGain(0.0f);
-        muted = true;
+    if (muted != shouldMute) {
+        muted = shouldMute;
+
+        if (muted) {
+            transportSource.setGain(0.0f);
+        }
+        else {
+            transportSource.setGain(currentGain);
+        }
     }
-    else
-    {
-        transportSource.setGain(previousGain);
-        muted = false;
-    }
+}
+
+void PlayerAudio::toggleMute()
+{
+    setMute(!muted);
 }
 
 void PlayerAudio::clearLoopPoints()
@@ -147,4 +158,18 @@ juce::String PlayerAudio::getTitle() const
 juce::String PlayerAudio::getArtist() const
 {
     return "Unknown Artist";
+}
+
+int PlayerAudio::getNumChannels() const
+{
+    if (readerSource != nullptr && readerSource->getAudioFormatReader() != nullptr)
+        return readerSource->getAudioFormatReader()->numChannels;
+    return 0;
+}
+
+double PlayerAudio::getSampleRate() const
+{
+    if (readerSource != nullptr && readerSource->getAudioFormatReader() != nullptr)
+        return readerSource->getAudioFormatReader()->sampleRate;
+    return 0.0;
 }

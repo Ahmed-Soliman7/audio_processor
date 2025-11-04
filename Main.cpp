@@ -1,3 +1,5 @@
+#pragma once
+
 #include <JuceHeader.h>
 #include "MainComponent.h"
 
@@ -22,7 +24,7 @@ private:
         {
             setUsingNativeTitleBar(true);
             setContentOwned(new MainComponent(), true);
-            centreWithSize(1220, 300);
+            centreWithSize(1220, 400);
             setVisible(true);
         }
 

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <JuceHeader.h>
 #include "PlayerAudio.h"
@@ -46,6 +46,8 @@ private:
     juce::Label currentTimeLabel;
     juce::Label durationLabel;
 
+    juce::Label metadataLabel;
+
     std::unique_ptr<juce::FileChooser> fileChooser;
     bool isLooping = false;
     bool isDraggingPositionSlider = false;
@@ -56,10 +58,9 @@ private:
     void updateLoopPointsDisplay();
     void updateTimeDisplays();
     void updateSpeedDisplay();
-    juce::String formatTime(double seconds);
-
-    juce::Label metadataLabel;
     void updateMetadataDisplay();
+    void updateMuteButton();
+    juce::String formatTime(double seconds);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
 };
