@@ -1,121 +1,175 @@
-﻿#include "MainComponent.h"
+#include "PlayerAudio.h"
 
-MainComponent::MainComponent()
-    : playerGUI(playerAudio), playerGUI2(playerAudio2)
+PlayerAudio::PlayerAudio()
 {
-    addAndMakeVisible(playerGUI);
-    addAndMakeVisible(playerGUI2);
-
-    masterVolumeSlider.setRange(0.0, 1.0, 0.01);
-    masterVolumeSlider.setValue(0.8);
-    masterVolumeSlider.setSliderStyle(juce::Slider::LinearHorizontal);
-    masterVolumeSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
-    masterVolumeSlider.onValueChange = [this] {};
-    addAndMakeVisible(masterVolumeSlider);
-
-    masterVolumeLabel.setText("Master Volume:", juce::dontSendNotification);
-    masterVolumeLabel.attachToComponent(&masterVolumeSlider, true);
-    addAndMakeVisible(masterVolumeLabel);
-
-    balanceSlider.setRange(-1.0, 1.0, 0.1);
-    balanceSlider.setValue(0.0);
-    balanceSlider.setSliderStyle(juce::Slider::LinearHorizontal);
-    balanceSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
-    addAndMakeVisible(balanceSlider);
-
-    balanceLabel.setText("Balance:", juce::dontSendNotification);
-    balanceLabel.attachToComponent(&balanceSlider, true);
-    addAndMakeVisible(balanceLabel);
-
-    setSize(1200, 600);
-    setAudioChannels(0, 2);
+    formatManager.registerBasicFormats();
+    transportSource.setSource(nullptr);
+    resampler.setResamplingRatio(playbackSpeed);
+    currentGain = 0.5f;
+    transportSource.setGain(currentGain);
 }
 
-MainComponent::~MainComponent() { shutdownAudio(); }
-
-void MainComponent::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
+PlayerAudio::~PlayerAudio()
 {
-    playerAudio.prepareToPlay(samplesPerBlockExpected, sampleRate);
-    playerAudio2.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    transportSource.setSource(nullptr);
 }
 
-void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
+void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
-    bufferToFill.clearActiveBufferRegion();
+    transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    resampler.prepareToPlay(samplesPerBlockExpected, sampleRate);
+}
 
-    juce::AudioBuffer<float> tempBuffer1(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);
-    juce::AudioBuffer<float> tempBuffer2(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);
-
-    juce::AudioSourceChannelInfo info1(&tempBuffer1, 0, bufferToFill.numSamples);
-    juce::AudioSourceChannelInfo info2(&tempBuffer2, 0, bufferToFill.numSamples);
-
-    playerAudio.getNextAudioBlock(info1);
-    playerAudio2.getNextAudioBlock(info2);
-
-    float balance = static_cast<float>(balanceSlider.getValue());
-    float leftGain = 1.0f;
-    float rightGain = 1.0f;
-
-    if (balance < 0) {
-        rightGain = 1.0f + balance;
-    }
-    else if (balance > 0) {
-        leftGain = 1.0f - balance;
-    }
-
-    float masterGain = static_cast<float>(masterVolumeSlider.getValue());
-
-    for (int channel = 0; channel < bufferToFill.buffer->getNumChannels(); ++channel)
+void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
+{
+    if (readerSource != nullptr && transportSource.isPlaying())
     {
-        auto* output = bufferToFill.buffer->getWritePointer(channel, bufferToFill.startSample);
-        auto* input1 = tempBuffer1.getReadPointer(channel % tempBuffer1.getNumChannels());
-        auto* input2 = tempBuffer2.getReadPointer(channel % tempBuffer2.getNumChannels());
+        resampler.getNextAudioBlock(bufferToFill);
 
-        for (int sample = 0; sample < bufferToFill.numSamples; ++sample)
+        if (looping && transportSource.hasStreamFinished())
+            transportSource.setPosition(0.0);
+
+        if (abLooping && hasLoopStart && hasLoopEnd)
         {
+            double currentPos = transportSource.getCurrentPosition();
+            if (currentPos >= loopEnd)
+                transportSource.setPosition(loopStart);
+        }
+    }
+    else
+    {
+        bufferToFill.clearActiveBufferRegion();
+    }
+}
 
-            float mixedSample = (input1[sample] * leftGain * masterGain) +
-                (input2[sample] * rightGain * masterGain);
+void PlayerAudio::releaseResources()
+{
+    transportSource.releaseResources();
+    resampler.releaseResources();
+}
 
-            output[sample] = juce::jlimit(-1.0f, 1.0f, mixedSample);
+void PlayerAudio::loadFile(const juce::File& audioFile)
+{
+    transportSource.stop();
+    transportSource.setSource(nullptr);
+    readerSource.reset();
+    clearLoopPoints();
+    muted = false;
+
+    if (audioFile.existsAsFile())
+    {
+        if (auto* reader = formatManager.createReaderFor(audioFile))
+        {
+            readerSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
+            transportSource.setSource(readerSource.get(), 0, nullptr, reader->sampleRate);
+            resampler.setResamplingRatio(playbackSpeed);
+            currentFile = audioFile;
+
+            if (readerSource != nullptr)
+                readerSource->setLooping(looping);
         }
     }
 }
 
-void MainComponent::releaseResources()
+void PlayerAudio::start() { transportSource.start(); }
+
+void PlayerAudio::stop() { transportSource.stop(); transportSource.setPosition(0.0); }
+
+void PlayerAudio::setPosition(double position) { transportSource.setPosition(position); }
+
+void PlayerAudio::setGain(float gain)
 {
-    playerAudio.releaseResources();
-    playerAudio2.releaseResources();
+    currentGain = gain;
+    if (!muted) {
+        transportSource.setGain(gain);
+    }
 }
 
-void MainComponent::paint(juce::Graphics& g)
+void PlayerAudio::setLooping(bool shouldLoop)
 {
-    g.fillAll(juce::Colours::darkgrey);
-
-    auto mixerArea = getLocalBounds().removeFromTop(80).reduced(10);
-    g.setColour(juce::Colours::white);
-    g.setFont(juce::Font(16.0f, juce::Font::bold));
-    g.drawText("Audio Mixer", mixerArea.removeFromTop(10), juce::Justification::centred);
+    looping = shouldLoop;
+    if (readerSource != nullptr)
+        readerSource->setLooping(looping);
 }
 
-void MainComponent::resized()
+void PlayerAudio::setLoopPointA()
 {
-    auto area = getLocalBounds().reduced(10);
+    loopStart = transportSource.getCurrentPosition();
+    hasLoopStart = true;
+    if (hasLoopEnd && loopStart > loopEnd)
+        loopEnd = loopStart;
+}
 
-    auto mixerArea = area.removeFromTop(80);
-    auto masterArea = mixerArea.removeFromTop(40).reduced(5);
-    auto balanceArea = mixerArea.removeFromTop(40).reduced(5);
+void PlayerAudio::setLoopPointB()
+{
+    loopEnd = transportSource.getCurrentPosition();
+    hasLoopEnd = true;
+    if (hasLoopStart && loopEnd < loopStart)
+        loopStart = loopEnd;
+}
 
-    masterVolumeLabel.setBounds(masterArea.removeFromLeft(100));
-    masterVolumeSlider.setBounds(masterArea);
+void PlayerAudio::toggleABLooping()
+{
+    if (hasLoopStart && hasLoopEnd)
+        abLooping = !abLooping;
+    else if (abLooping)
+        abLooping = false;
+}
 
-    balanceLabel.setBounds(balanceArea.removeFromLeft(100));
-    balanceSlider.setBounds(balanceArea);
+void PlayerAudio::setMute(bool shouldMute)
+{
+    if (muted != shouldMute) {
+        muted = shouldMute;
 
-    auto playersArea = area;
-    auto leftArea = playersArea.removeFromLeft(playersArea.getWidth() / 2).reduced(5);
-    auto rightArea = playersArea.reduced(5);
+        if (muted) {
+            transportSource.setGain(0.0f);
+        }
+        else {
+            transportSource.setGain(currentGain);
+        }
+    }
+}
 
-    playerGUI.setBounds(leftArea);
-    playerGUI2.setBounds(rightArea);
+void PlayerAudio::toggleMute()
+{
+    setMute(!muted);
+}
+
+void PlayerAudio::clearLoopPoints()
+{
+    hasLoopStart = false;
+    hasLoopEnd = false;
+    abLooping = false;
+    loopStart = 0.0;
+    loopEnd = 0.0;
+}
+
+void PlayerAudio::setPlaybackSpeed(double speed)
+{
+    playbackSpeed = juce::jlimit(0.25, 2.0, speed);
+    resampler.setResamplingRatio(playbackSpeed);
+}
+
+juce::String PlayerAudio::getTitle() const
+{
+    return currentFile.getFileNameWithoutExtension();
+}
+
+juce::String PlayerAudio::getArtist() const
+{
+    return "Unknown Artist";
+}
+
+int PlayerAudio::getNumChannels() const
+{
+    if (readerSource != nullptr && readerSource->getAudioFormatReader() != nullptr)
+        return readerSource->getAudioFormatReader()->numChannels;
+    return 0;
+}
+
+double PlayerAudio::getSampleRate() const
+{
+    if (readerSource != nullptr && readerSource->getAudioFormatReader() != nullptr)
+        return readerSource->getAudioFormatReader()->sampleRate;
+    return 0.0;
 }
