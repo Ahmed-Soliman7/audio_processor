@@ -1,12 +1,14 @@
-﻿#pragma once
+#pragma once
 
 #include <JuceHeader.h>
 #include "PlayerAudio.h"
 
-class PlayerGUI : public juce::Component,
+class PlayerGUI : 
+    public juce::Component,
     public juce::Button::Listener,
     public juce::Slider::Listener,
-    public juce::Timer
+    public juce::Timer,
+    public juce::ChangeListener
 {
 public:
     PlayerGUI(PlayerAudio& audioPlayer);
@@ -14,9 +16,16 @@ public:
 
     void paint(juce::Graphics& g) override;
     void resized() override;
+    void mouseDown(const juce::MouseEvent&) override;
+
     void buttonClicked(juce::Button* button) override;
     void sliderValueChanged(juce::Slider* slider) override;
     void timerCallback() override;
+    void changeListenerCallback(juce::ChangeBroadcaster* source) override;
+
+    void refreshMuteButton();
+    void refreshMuteClick();
+
 
 private:
     PlayerAudio& playerAudio;
@@ -38,7 +47,13 @@ private:
 
     juce::Slider volumeSlider;
     juce::Label volumeLabel;
+    //
+    juce::AudioFormatManager formatManager;
+    juce::AudioThumbnailCache thumbnailCache{ 5 };
+    juce::AudioThumbnail thumbnail{ 512, formatManager, thumbnailCache };
+    int waveformHeight =180;
 
+    //
     juce::Slider speedSlider;
     juce::Label speedLabel;
 
@@ -52,6 +67,11 @@ private:
     bool isLooping = false;
     bool isDraggingPositionSlider = false;
 
+    //
+    void updateWaveform();
+    void updateTimeLabels();
+    
+    //
     void loadAudioFile();
     void updateLoopButton();
     void updateABLoopButton();
