@@ -35,3 +35,8 @@ private:
 };
 
 START_JUCE_APPLICATION(SimpleAudioPlayer)
+    std::unique_ptr<MainWindow> mainWindow;
+};
+
+
+START_JUCE_APPLICATION(SimpleAudioPlayer)
