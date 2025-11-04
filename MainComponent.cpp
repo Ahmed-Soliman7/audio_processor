@@ -138,3 +138,6 @@ void MainComponent::resized()
     playerGUI.setBounds(leftArea);
     playerGUI2.setBounds(rightArea);
 }
+
+
+
