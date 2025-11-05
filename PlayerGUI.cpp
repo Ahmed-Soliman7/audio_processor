@@ -129,8 +129,7 @@ void PlayerGUI::paint(juce::Graphics& g)
 void PlayerGUI::loadAudioFile()
 {
     fileChooser = std::make_unique<juce::FileChooser>(
-        "اختر ملف صوتي...", juce::File{}, "*.wav;*.mp3;*.aiff;*.flac;*.ogg");
-
+        "Choosese The Audio File", juce::File{}, "*.wav;*.mp3;*.aiff;*.flac;*.ogg");
     fileChooser->launchAsync(
         juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
         [this](const juce::FileChooser& fc)
@@ -395,3 +394,4 @@ void PlayerGUI::updateMetadataDisplay()
 
     metadataLabel.setText(metadataText, juce::dontSendNotification);
 }
+
