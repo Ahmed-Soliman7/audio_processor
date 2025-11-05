@@ -46,7 +46,7 @@ MainComponent::MainComponent()
     balanceLabel.attachToComponent(&balanceSlider, true);
     addAndMakeVisible(balanceLabel);
 
-    setSize(1200, 800);
+    setSize(1200, 400);
     setAudioChannels(0, 2);
 }
 
