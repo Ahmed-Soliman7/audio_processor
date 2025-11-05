@@ -130,6 +130,7 @@ void PlayerGUI::loadAudioFile()
 {
     fileChooser = std::make_unique<juce::FileChooser>(
         "Choosese The Audio File", juce::File{}, "*.wav;*.mp3;*.aiff;*.flac;*.ogg");
+
     fileChooser->launchAsync(
         juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
         [this](const juce::FileChooser& fc)
@@ -239,10 +240,26 @@ void PlayerGUI::mouseDown(const juce::MouseEvent& e)
     {
         float prop = static_cast<float>(e.getPosition().x - wf.getX()) / wf.getWidth();
         double pos = juce::jlimit(0.0, thumbnail.getTotalLength(), prop * thumbnail.getTotalLength());
-        playerAudio.setPosition(pos);
+        if (playerAudio.isABLooping()) 
+        {
+            double loopStart = playerAudio.getLoopStart(); 
+            double loopEnd = playerAudio.getLoopEnd();     
+
+      
+            if (pos >= loopStart && pos <= loopEnd)
+            {
+                playerAudio.setPosition(pos);
+            }
+
+        }
+        else
+        {
+
+            playerAudio.setPosition(pos);
+        }
+
         return;
     }
-
     if (e.originalComponent == &positionSlider)
         isDraggingPositionSlider = true;
 }
@@ -394,4 +411,3 @@ void PlayerGUI::updateMetadataDisplay()
 
     metadataLabel.setText(metadataText, juce::dontSendNotification);
 }
-
