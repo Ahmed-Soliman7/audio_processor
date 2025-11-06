@@ -105,7 +105,8 @@ void PlayerGUI::paint(juce::Graphics& g)
     if (thumbnail.getTotalLength() > 0.0)
     {
         g.setColour(juce::Colours::lightblue);
-        thumbnail.drawChannels(g, waveformArea.reduced(4).toNearestInt(), 0.0, thumbnail.getTotalLength(), 1.0f);
+        thumbnail.drawChannel(g, waveformArea.reduced(4).toNearestInt(), 0.0f, thumbnail.getTotalLength(), 0,  1.0f);
+
 
         double currentTime = playerAudio.getCurrentPosition();
         double totalLength = thumbnail.getTotalLength();
@@ -458,3 +459,4 @@ void PlayerGUI::updateTimeLabels()
 {
     updateTimeDisplays();
 }
+
