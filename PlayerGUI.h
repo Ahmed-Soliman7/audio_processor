@@ -42,7 +42,7 @@ private:
 	juce::AudioFormatManager formatManager;
 	juce::AudioThumbnailCache thumbnailCache{ 5 };
 	juce::AudioThumbnail thumbnail{ 512, formatManager, thumbnailCache };
-	int waveformHeight = 180;
+	int waveformHeight = 80;
 	//
 	juce::Slider speedSlider;
 	juce::Label speedLabel;
