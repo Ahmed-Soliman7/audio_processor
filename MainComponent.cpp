@@ -8,10 +8,14 @@ MainComponent::MainComponent()
 	playlist.addChangeListener(this);
 	playlist.onLoadToLeft = [this](const juce::File& f) { playerGUI.loadFile(f); };
 	playlist.onLoadToRight = [this](const juce::File& f) { playerGUI2.loadFile(f); };
+
+	// Master Volume Slider
 	masterVolumeSlider.setRange(0.0, 1.0, 0.01);
 	masterVolumeSlider.setValue(0.8);
 	masterVolumeSlider.setSliderStyle(juce::Slider::LinearHorizontal);
 	masterVolumeSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
+	masterVolumeSlider.setColour(juce::Slider::thumbColourId, juce::Colours::orange);
+	masterVolumeSlider.setColour(juce::Slider::trackColourId, juce::Colours::lightblue);
 	masterVolumeSlider.onValueChange = [this]
 		{
 			float masterGain = static_cast<float>(masterVolumeSlider.getValue());
@@ -29,17 +33,26 @@ MainComponent::MainComponent()
 			}
 		};
 	addAndMakeVisible(masterVolumeSlider);
+
 	masterVolumeLabel.setText("Master Volume:", juce::dontSendNotification);
+	masterVolumeLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 	masterVolumeLabel.attachToComponent(&masterVolumeSlider, true);
 	addAndMakeVisible(masterVolumeLabel);
+
+	// Balance Slider
 	balanceSlider.setRange(-1.0, 1.0, 0.1);
 	balanceSlider.setValue(0.0);
 	balanceSlider.setSliderStyle(juce::Slider::LinearHorizontal);
 	balanceSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
+	balanceSlider.setColour(juce::Slider::thumbColourId, juce::Colours::yellow);
+	balanceSlider.setColour(juce::Slider::trackColourId, juce::Colours::lightgreen);
 	addAndMakeVisible(balanceSlider);
+
 	balanceLabel.setText("Balance:", juce::dontSendNotification);
+	balanceLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 	balanceLabel.attachToComponent(&balanceSlider, true);
 	addAndMakeVisible(balanceLabel);
+
 	setSize(1200, 800);
 	if (juce::RuntimePermissions::isRequired(juce::RuntimePermissions::recordAudio)
 		&& !juce::RuntimePermissions::isGranted(juce::RuntimePermissions::recordAudio))
@@ -52,12 +65,15 @@ MainComponent::MainComponent()
 		setAudioChannels(0, 2);
 	}
 }
+
 MainComponent::~MainComponent() { shutdownAudio(); }
+
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
 	playerAudio.prepareToPlay(samplesPerBlockExpected, sampleRate);
 	playerAudio2.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
+
 void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
 	bufferToFill.clearActiveBufferRegion();
@@ -90,35 +106,56 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
 		}
 	}
 }
+
 void MainComponent::releaseResources()
 {
 	playerAudio.releaseResources();
 	playerAudio2.releaseResources();
 }
+
 void MainComponent::paint(juce::Graphics& g)
 {
-	g.fillAll(juce::Colours::darkgrey);
+	// Gradient background
+	juce::ColourGradient gradient(
+		juce::Colours::darkgrey, 0, 0,
+		juce::Colours::darkslategrey, getWidth(), getHeight(),
+		false
+	);
+	g.setGradientFill(gradient);
+	g.fillAll(juce::Colours::darkblue);
+
 	auto mixerArea = getLocalBounds().removeFromTop(80).reduced(10);
-	g.setColour(juce::Colours::white);
-	g.setFont(juce::Font(16.0f, juce::Font::bold));
-	g.drawText("Audio Mixer", mixerArea.removeFromTop(10), juce::Justification::centred);
+
+	// Audio Mixer title with better styling
+	g.setColour(juce::Colours::lightblue);
+	g.setFont(juce::Font(20.0f, juce::Font::bold | juce::Font::italic));
+	g.drawText(" AUDIO MIXER ", mixerArea.removeFromTop(15), juce::Justification::centred);
+
+	// Decorative line
 }
+
 void MainComponent::resized()
 {
 	auto area = getLocalBounds().reduced(10);
 	auto mixerArea = area.removeFromTop(80);
 	auto masterArea = mixerArea.removeFromTop(40).reduced(5);
 	auto balanceArea = mixerArea.removeFromTop(40).reduced(5);
-	masterVolumeLabel.setBounds(masterArea.removeFromLeft(100));
+
+	masterVolumeLabel.setBounds(masterArea.removeFromLeft(120));
 	masterVolumeSlider.setBounds(masterArea);
-	balanceLabel.setBounds(balanceArea.removeFromLeft(100));
+
+	balanceLabel.setBounds(balanceArea.removeFromLeft(120));
 	balanceSlider.setBounds(balanceArea);
+
 	auto playlistArea = area.removeFromBottom(200).reduced(5);
 	playlist.setBounds(playlistArea);
+
 	auto playersArea = area;
 	auto leftArea = playersArea.removeFromLeft(playersArea.getWidth() / 2).reduced(5);
 	auto rightArea = playersArea.reduced(5);
+
 	playerGUI.setBounds(leftArea);
 	playerGUI2.setBounds(rightArea);
 }
+
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source) {}
