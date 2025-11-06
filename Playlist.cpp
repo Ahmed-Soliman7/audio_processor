@@ -1,0 +1,160 @@
+#include "Playlist.h"
+Playlist::Playlist()
+{
+	table.setModel(this);
+	table.getHeader().addColumn("Title", 1, 300);
+	table.getHeader().addColumn("Duration", 2, 80);
+	table.getHeader().addColumn("File", 3, 200);
+	table.setMultipleSelectionEnabled(false);
+	addAndMakeVisible(table);
+	addButton.onClick = [this] {
+		fileChooser = std::make_unique<juce::FileChooser>(
+			"Select Audio Files", juce::File{}, "*.wav;*.mp3;*.aiff;*.flac;*.ogg");
+		fileChooser->launchAsync(juce::FileBrowserComponent::openMode |
+			juce::FileBrowserComponent::canSelectMultipleItems,
+			[this](const juce::FileChooser& fc)
+			{
+				auto results = fc.getResults();
+				for (auto& file : results)
+				{
+					if (file.existsAsFile())
+						addFile(file);
+				}
+			});
+		};
+	removeButton.onClick = [this] { removeSelectedFile(); };
+	clearButton.onClick = [this] { clearPlaylist(); };
+	loadLeftButton.onClick = [this]
+		{
+			if (hasSelection() && onLoadToLeft)
+				onLoadToLeft(getSelectedFile());
+		};
+	loadRightButton.onClick = [this]
+		{
+			if (hasSelection() && onLoadToRight)
+				onLoadToRight(getSelectedFile());
+		};
+	addAndMakeVisible(addButton);
+	addAndMakeVisible(removeButton);
+	addAndMakeVisible(clearButton);
+	addAndMakeVisible(loadLeftButton);
+	addAndMakeVisible(loadRightButton);
+}
+void Playlist::resized()
+{
+	auto area = getLocalBounds();
+	auto buttonArea = area.removeFromTop(30).reduced(5);
+	const int w = 80;
+	addButton.setBounds(buttonArea.removeFromLeft(w));
+	buttonArea.removeFromLeft(5);
+	removeButton.setBounds(buttonArea.removeFromLeft(w));
+	buttonArea.removeFromLeft(5);
+	clearButton.setBounds(buttonArea.removeFromLeft(w));
+	buttonArea.removeFromLeft(5);
+	loadLeftButton.setBounds(buttonArea.removeFromLeft(w));
+	buttonArea.removeFromLeft(5);
+	loadRightButton.setBounds(buttonArea.removeFromLeft(w));
+	table.setBounds(area);
+}
+int Playlist::getNumRows()
+{
+	return items.size();
+}
+void Playlist::paintRowBackground(juce::Graphics& g, int rowNumber, int width, int height, bool rowIsSelected)
+{
+	auto colour = rowIsSelected ? juce::Colours::lightblue :
+		(rowNumber % 2 == 0 ? juce::Colours::white : juce::Colours::lightgrey);
+	g.fillAll(colour);
+}
+void Playlist::paintCell(juce::Graphics& g, int rowNumber, int columnId, int width, int height, bool rowIsSelected)
+{
+	g.setColour(juce::Colours::black);
+	g.setFont(14.0f);
+	if (rowNumber < items.size())
+	{
+		const auto& item = items[rowNumber];
+		switch (columnId)
+		{
+		case 1: // Title
+			g.drawText(item.title, 5, 0, width - 5, height, juce::Justification::centredLeft);
+			break;
+		case 2: // Duration
+			g.drawText(juce::String(item.duration, 1) + "s", 0, 0, width, height, juce::Justification::centred);
+			break;
+		case 3: // File name
+			g.drawText(item.file.getFileName(), 5, 0, width - 5, height, juce::Justification::centredLeft);
+			break;
+		}
+	}
+}
+void Playlist::cellClicked(int rowNumber, int columnId, const juce::MouseEvent& event)
+{
+	table.selectRow(rowNumber);
+	sendChangeMessage();
+}
+void Playlist::cellDoubleClicked(int rowNumber, int columnId, const juce::MouseEvent& event)
+{
+	table.selectRow(rowNumber);
+	sendChangeMessage();
+}
+void Playlist::addFile(const juce::File& file)
+{
+	if (file.existsAsFile())
+	{
+		PlaylistItem item;
+		item.file = file;
+		item.title = file.getFileNameWithoutExtension();
+		juce::AudioFormatManager formatManager;
+		formatManager.registerBasicFormats();
+		std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(file));
+		if (reader != nullptr)
+		{
+			item.duration = reader->lengthInSamples / reader->sampleRate;
+		}
+		else
+		{
+			item.duration = 0.0;
+		}
+		items.add(item);
+		updateTable();
+		sendChangeMessage();
+	}
+}
+void Playlist::removeSelectedFile()
+{
+	int selectedRow = table.getSelectedRow();
+	if (selectedRow >= 0 && selectedRow < items.size())
+	{
+		items.remove(selectedRow);
+		updateTable();
+	}
+}
+void Playlist::clearPlaylist()
+{
+	items.clear();
+	updateTable();
+}
+juce::File Playlist::getSelectedFile() const
+{
+	int selectedRow = table.getSelectedRow();
+	if (selectedRow >= 0 && selectedRow < items.size())
+		return items[selectedRow].file;
+	return juce::File();
+}
+juce::String Playlist::getTitle(int row) const
+{
+	if (row >= 0 && row < items.size())
+		return items[row].title;
+	return "";
+}
+juce::String Playlist::getDuration(int row) const
+{
+	if (row >= 0 && row < items.size())
+		return juce::String(items[row].duration, 1) + "s";
+	return "";
+}
+void Playlist::updateTable()
+{
+	table.updateContent();
+	table.repaint();
+}
