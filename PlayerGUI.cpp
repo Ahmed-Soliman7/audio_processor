@@ -96,7 +96,7 @@ void PlayerGUI::refreshMuteClick()
 }
 void PlayerGUI::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colours::darkgrey);
+    g.fillAll(juce::Colours::orange);
 
     auto waveformArea = getLocalBounds().removeFromBottom(waveformHeight).reduced(10);
 
@@ -104,8 +104,9 @@ void PlayerGUI::paint(juce::Graphics& g)
 
     if (thumbnail.getTotalLength() > 0.0)
     {
-        g.setColour(juce::Colours::lightblue);
-        thumbnail.drawChannel(g, waveformArea.reduced(4).toNearestInt(), 0.0f, thumbnail.getTotalLength(), 0,  1.0f);
+        g.setColour(juce::Colours::blue);
+        thumbnail.drawChannel(g, waveformArea.reduced(4).toNearestInt(), 0.0f, thumbnail.getTotalLength(), 0, 1.0f);
+
 
 
         double currentTime = playerAudio.getCurrentPosition();
