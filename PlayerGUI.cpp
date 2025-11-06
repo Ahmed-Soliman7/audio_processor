@@ -260,8 +260,22 @@ void PlayerGUI::mouseDown(const juce::MouseEvent& e)
 
         return;
     }
+    if (e.eventComponent == &positionSlider)
+    {
+        isDraggingPositionSlider = true;
+    }
     if (e.originalComponent == &positionSlider)
         isDraggingPositionSlider = true;
+}
+
+void PlayerGUI::mouseUp(const juce::MouseEvent& e)
+{
+    if (isDraggingPositionSlider)
+    {
+        isDraggingPositionSlider = false;
+        double position = positionSlider.getValue() * playerAudio.getLengthInSeconds();
+        playerAudio.setPosition(position);
+    }
 }
 
 
@@ -410,4 +424,37 @@ void PlayerGUI::updateMetadataDisplay()
     }
 
     metadataLabel.setText(metadataText, juce::dontSendNotification);
+}
+
+
+void PlayerGUI::loadFile(const juce::File& file)
+{
+    if (file.existsAsFile())
+    {
+        playerAudio.loadFile(file);
+        thumbnail.clear();
+        thumbnail.setSource(new juce::FileInputSource(file));
+
+        positionSlider.setValue(0.0, juce::dontSendNotification);
+        playerAudio.setPosition(0.0);
+
+        updateTimeDisplays();
+        updateLoopPointsDisplay();
+        updateABLoopButton();
+        updateMetadataDisplay();
+        updateMuteButton();
+
+        if (playerAudio.isPlaying()) playerAudio.stop();
+        repaint();
+    }
+}
+
+void PlayerGUI::updateWaveform()
+{
+    repaint();
+}
+
+void PlayerGUI::updateTimeLabels()
+{
+    updateTimeDisplays();
 }
